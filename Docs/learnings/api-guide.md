@@ -114,7 +114,7 @@ Use JSON for external API payloads:
 
 Rules:
 
-- Use `snake_case` consistently in Python-facing APIs.
+- Use `snake_case` consistently in JSON APIs.
 - Use ISO 8601 UTC timestamps: `2026-09-19T12:00:00Z`.
 - Use strings for IDs, not database integer IDs exposed as implementation details.
 - Use explicit enums for finite state: `"open"`, `"acknowledged"`, `"resolved"`.
@@ -333,24 +333,26 @@ Do not return `200` for every situation. Proper status codes help clients recove
 
 ## 6. Validation and error responses
 
-Validate at the API boundary. In FastAPI, define Pydantic request and response models.
+Validate at the API boundary. In Go, define explicit request and response structs, decode JSON carefully, reject unknown fields, and validate domain constraints before calling the service layer.
 
 Bad:
 
-```python
-@app.post("/incidents")
-def create_incident(payload: dict):
-    ...
+```go
+func createIncident(w http.ResponseWriter, r *http.Request) {
+	var payload map[string]any
+	// ...
+}
 ```
 
 Better:
 
-```python
-class CreateIncidentRequest(BaseModel):
-    service_id: str
-    title: str = Field(min_length=1, max_length=200)
-    severity: Literal["low", "medium", "high", "critical"]
-    source: Literal["prometheus", "loki", "health_check"]
+```go
+type CreateIncidentRequest struct {
+	ServiceID string `json:"service_id"`
+	Title     string `json:"title"`
+	Severity  string `json:"severity"`
+	Source    string `json:"source"`
+}
 ```
 
 Use one consistent error shape for domain errors:
@@ -589,7 +591,7 @@ Use a request/correlation ID across API, worker, logs, traces, and audit records
 
 ## 14. API documentation
 
-FastAPI automatically creates OpenAPI documentation. Treat it as a starting point, not the complete documentation.
+Generate or maintain OpenAPI documentation for the Go API. Treat it as a starting point, not the complete documentation.
 
 Maintain:
 
@@ -654,8 +656,9 @@ Test the actual demonstration:
 
 Tools to know:
 
-- `pytest`
-- FastAPI `TestClient` or `httpx`
+- Go's `testing` package
+- `net/http/httptest`
+- table-driven tests
 - test database/container
 - `curl` for manual smoke tests
 - k6 for load and failure simulations
